@@ -105737,12 +105737,17 @@ Px9OZnv0C8c2+H89S0d7a/8FPJQg1RQnCwA=
     const d = psLer(), recados = $('#ptTexto').value.trim(), B = d.blocos.map(b => Object.assign({}, b, { salvo: true }));
     if (!B.length && !recados) { toast('O rascunho está vazio: não há nada para publicar.'); return; }
     if (B.some(b => !String(b.titulo).trim())) { toast('Todo bloco precisa do nome do e-mail.'); return; }
-    const agora = new Date().toISOString(), por = ptQuem(), pid = ptId();
+    if (PS.enviando) return;
+    const agora = new Date().toISOString(), por = ptQuem(), pid = ptId(), sigDe = (bl, rc) => JSON.stringify([(bl || []).map(b => b.emailId || ((b.titulo || '') + '|' + (b.recebido || ''))), String(rc || '').trim()]), eu = psSa(por), sig = sigDe(B, recados);
+    if ((PT.dados.cards || []).some(c => c.col === 'passagem' && !c.apagado && psSa(c.por) === eu && sigDe(c.blocos, c.texto) === sig)) { toast('Esta passagem já foi lançada na linha do tempo.', true); return; }
+    PS.enviando = true; const bt = $('#psPublicar'); if (bt) bt.disabled = true;
+    try {
     const ok = await ptGravar(dd => {
       dd.cards.push({ id: pid, col: 'passagem', por, texto: recados, urgente: false, setor: '', pend: [], nItens: 0, blocos: B, criadoEm: agora, atualizadoEm: agora });
       const P = dd.pends = dd.pends || [];
       B.filter(b => b.urg || b.imp || b.nao || b.nenv).forEach(b => P.push({ id: ptId(), setor: '', texto: psResumo(b), cli: b.cli || '', urgente: !!b.urg, imp: !!b.imp, nao: !!b.nao, nenv: !!b.nenv, bloco: b, passagem: pid, por, criadoEm: agora, atualizadoEm: agora, feito: null })); });
-    if (ok) { d.blocos = []; d.recados = ''; $('#ptTexto').value = ''; psGuardar(); psRender(); toast('Passagem publicada. A equipe vê na linha do tempo; urgentes, importantes, não lançadas e não enviadas foram para as Pendências.'); ctAba('quadro'); } }
+    if (ok) { d.blocos = []; d.recados = ''; $('#ptTexto').value = ''; psGuardar(); psRender(); toast('Passagem enviada com sucesso!'); ctAba('quadro'); }
+    } finally { PS.enviando = false; if (bt) bt.disabled = false; } }
   $('#psPublicar').addEventListener('click', psPublicar);
 
   /* áudio: grava, ouve antes de enviar e manda inteiro (arquivo) para as Pendências */
@@ -106282,7 +106287,8 @@ dialog.rfmd::backdrop{background:rgba(11,31,63,.35)}
           <td class="acx-b">${x.cli ? `<button type="button" data-acx="ed" data-k="${k}">Editar</button> <button type="button" class="del" data-acx="ex" data-k="${k}">Excluir</button> <button type="button" data-acx="nt" data-k="${k}" title="Comentar esta loja">Comentar${nn ? `<span class="acx-cnt">${nn}</span>` : ''}</button>` : ''}</td></tr>${ver ? acNotasHtml(x.cli, x.loja, nc) : ''}`; }).join('')}</tbody></table></div></div>`; }
   const BP_LUPA = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
   /* ---------- painel "Busca de Programações" logo abaixo dos dados do e-mail ---------- */
-  function bpMontar(id) {
+  function bpMontar(id) { const d0 = mlDoc(id), x0 = d0 && d0.getElementById('rfBusca'); if (x0) x0.remove(); } /* a busca saiu da Programação: agora é a aba Pesquisa */
+  function bpMontarAntigo(id) {
     const doc = mlDoc(id), mail = doc && doc.getElementById('rfMail'); if (!mail || doc.getElementById('rfBusca')) return;
     const el = doc.createElement('section'); el.className = 'rfbp'; el.id = 'rfBusca';
     el.innerHTML = `<div class="bp-h"><span class="bp-ic">${BP_LUPA}</span><div><h2>Busca de Programações</h2><p>Preencha só o que tiver: qualquer campo sozinho já busca.</p></div></div>
@@ -106334,18 +106340,35 @@ dialog.rfmd::backdrop{background:rgba(11,31,63,.35)}
       if (b.dataset.pqv != null && S.aba === 'uf' && S.cid) S.cid = ''; bpPqRender(id); });
   }
   function bpPqRender(id, soRes) {
-    const doc = mlDoc(id), ov = doc && doc.getElementById('rfPesq'); if (!ov || ov.hidden) return; const S = BP.pq[id], L = mlLinhas(id);
-    const ROT = { uf: 'Estado', cid: 'Cidade', prest: 'Prestador' };
-    if (!soRes || !ov.querySelector('#rfpqQ')) ov.innerHTML = `<header class="rfpq-h"><span class="bp-ic">${BP_LUPA}</span><div><h2>Pesquisa · ${esc(ctCli(id).nome)}</h2><p>Digite o nome da loja, cidade ou região. Use as abas para filtrar por estado, cidade ou prestador.</p></div><button type="button" class="rfpq-x" data-pqf="1" aria-label="Fechar pesquisa">×</button></header>
-      <input id="rfpqQ" type="search" placeholder="Loja, cidade ou região (ex.: L315, Contagem, Sudeste, RS)" value="${esc(S.q)}">
-      <div class="rfpq-tabs" role="tablist">${Object.keys(ROT).map(k => `<button type="button" role="tab" data-pqt="${k}" aria-selected="${S.aba === k}">${ROT[k]}${S[k] ? ' · ' + esc(S[k]) : ''}</button>`).join('')}</div><div class="rfpq-chips" id="rfpqCh"></div><div class="rfpq-res" id="rfpqR"></div>`;
-    if (!L) { ov.querySelector('#rfpqCh').innerHTML = ''; ov.querySelector('#rfpqR').innerHTML = '<div class="bp-vz">Conecte a pasta do cliente para pesquisar na planilha.</div>'; return; }
-    const sem = k => bpFiltrar(L, Object.assign({}, S, { [k]: '' }));
-    const ch = bpUnicos(sem(S.aba), S.aba === 'uf' ? x => String(x.uf || '').toUpperCase() : S.aba === 'cid' ? x => x.cid : x => x.prest).slice(0, 80);
-    ov.querySelector('#rfpqCh').innerHTML = (ch.length ? ch.map(([v, n]) => `<button type="button" data-pqv="${esc(v)}" class="${S[S.aba] === v ? 'on' : ''}">${esc(v)}<em>${n}</em></button>`).join('') : `<span class="bp-vz">Sem ${ROT[S.aba].toLowerCase()} na planilha.</span>`) +
-      Object.keys(ROT).filter(k => S[k]).map(k => `<button type="button" class="ativo" data-pqx="${k}" title="Tirar filtro">${ROT[k]}: ${esc(S[k])} ×</button>`).join('');
-    ov.querySelectorAll('[data-pqt]').forEach(b => { const k = b.dataset.pqt; b.setAttribute('aria-selected', String(S.aba === k)); b.textContent = ROT[k] + (S[k] ? ' · ' + S[k] : ''); });
-    const R = bpFiltrar(L, S); ov.querySelector('#rfpqR').innerHTML = S.q || S.uf || S.cid || S.prest ? (R.length ? bpTabela(R, 300) : '<div class="bp-vz">Nada encontrado.</div>') : `<div class="bp-vz">${L.length} programação(ões) na planilha. Digite ou escolha um filtro.</div>`;
+    const doc = mlDoc(id), ov = doc && doc.getElementById('rfPesq'); if (!ov || ov.hidden) return;
+    if (!ov.querySelector('#rfpqF')) {
+      ov.innerHTML = `<section class="rfbp" id="rfpqSec"><div class="bp-h"><span class="bp-ic">${BP_LUPA}</span><div><h2>Pesquisa · ${esc(ctCli(id).nome)}</h2><p>Digite a loja. Os outros campos são opcionais: qualquer um sozinho já busca.</p></div><button type="button" class="rfpq-x" data-pqf="1" aria-label="Fechar pesquisa">×</button></div>
+        <form class="bp-f" id="rfpqF" autocomplete="off" onsubmit="return false">
+          <label class="bp-main"><input id="rfpqQ" name="q" type="search" placeholder="Loja (ex.: L315) · também aceita cidade ou região"></label>
+          <label>Data do e-mail<input type="date" name="emD"></label><label class="c">Hora do e-mail<input type="time" name="emH"></label>
+          <label>Placa do veículo<input name="placa" maxlength="10" placeholder="ABC1D23"></label><label>Data de entrega<input type="date" name="ent"></label>
+          <fieldset class="bp-vias"><legend>Vias duplas · filtros opcionais</legend>
+            <label>Região<select name="reg"><option value="">Todas</option>${Object.keys(BP_REG).map(r => `<option>${r}</option>`).join('')}</select></label>
+            <label class="c">Estado<select name="uf"><option value="">Todos</option>${BP_UFS.map(u => `<option>${u}</option>`).join('')}</select></label>
+            <label>Cidade<input name="cid" list="bpCidL2" placeholder="cidade"><datalist id="bpCidL2"></datalist></label>
+            <label>Prestador<input name="prest" list="bpPreL2" placeholder="prestador"><datalist id="bpPreL2"></datalist></label></fieldset>
+          <div class="bp-b"><button type="button" data-bp="ir">${BP_LUPA}Buscar</button><button type="button" class="sec" data-bp="limpar">Limpar</button></div></form><div class="bp-r" id="rfpqR"></div></section>`;
+      const f = ov.querySelector('#rfpqF'), listas = () => { const L = mlLinhas(id) || [], uf = f.uf.value;
+        ov.querySelector('#bpCidL2').innerHTML = bpUnicos(L.filter(x => !uf || String(x.uf).toUpperCase() === uf), x => x.cid).slice(0, 400).map(([v]) => `<option value="${esc(v)}">`).join('');
+        ov.querySelector('#bpPreL2').innerHTML = bpUnicos(L, x => x.prest).slice(0, 200).map(([v]) => `<option value="${esc(v)}">`).join(''); };
+      f.addEventListener('input', () => { clearTimeout(BP.tl[id]); BP.tl[id] = setTimeout(() => bpPqRender(id, true), 250); }); f.addEventListener('change', () => bpPqRender(id, true));
+      f.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); bpPqRender(id, true); } });
+      f.uf.addEventListener('change', listas); f.cid.addEventListener('focus', listas); f.prest.addEventListener('focus', listas);
+      ov.addEventListener('click', e => { const b = e.target.closest('[data-bp]'); if (!b) return; if (b.dataset.bp === 'ir') bpPqRender(id, true); else { f.reset(); bpPqRender(id, true); } });
+    }
+    const f = ov.querySelector('#rfpqF'), r = ov.querySelector('#rfpqR'), v = Object.fromEntries([...new doc.defaultView.FormData(f)].map(([k, x]) => [k, String(x).trim()]));
+    if (!Object.values(v).some(Boolean)) { const L0 = mlLinhas(id); r.innerHTML = `<div class="bp-vz">${L0 ? L0.length + ' programação(ões) na planilha. ' : ''}Digite a loja ou preencha pelo menos um campo.</div>`; return; }
+    const E = bpEmails(id, v), L = mlLinhas(id);
+    let h = E ? (E.length ? `<h4>E-mails desse horário (${E.length})</h4><div class="mlgrid">${E.slice(0, 12).map(m => mlCard(m)).join('')}</div>` : '<div class="bp-vz">Nenhum e-mail registrado nessa data/hora. Tente pela loja, região, estado, cidade ou prestador.</div>') : '';
+    if (!L) h += '<div class="bp-vz">Conecte a pasta do cliente para pesquisar na planilha.</div>';
+    else { const R = bpFiltrar(L, v, E); if (v.placa && !L.some(x => x.placa)) h += '<div class="bp-vz">A planilha deste cliente não tem coluna de placa.</div>';
+      h += R.length ? `<h4>Programações</h4>${bpTabela(R, 300)}` : '<div class="bp-vz">Nenhuma programação com esses filtros.</div>'; }
+    r.innerHTML = h;
   }
   setInterval(() => { for (const id of Object.keys(frames)) { try { bpMontar(id); bpPqMontar(id); } catch (e) { /* ignora */ } } }, 1500);
   /* ===================== Histórico de ações (reprogramar / excluir), notas por loja e comentários =====================
@@ -106353,7 +106376,7 @@ dialog.rfmd::backdrop{background:rgba(11,31,63,.35)}
      comentários das lojas (automáticos + manuais) que aparecem na Pesquisa de cada cliente. ===================== */
   const ACX = { sel: {}, mais: {} };
   const AC_CSS = `
-.acx-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-size:12.5px}.acx-bar[hidden]{display:none}
+.bp-f label.bp-main{grid-column:1/-1!important;flex:1 1 100%!important;width:100%!important;min-width:100%!important;display:block;margin:0 0 8px}.bp-f label.bp-main input{width:100%!important;height:60px!important;font-size:19px!important;font-weight:600;border-radius:16px!important;padding:0 20px!important;box-sizing:border-box}\n.acx-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-size:12.5px}.acx-bar[hidden]{display:none}
 .acx-bar b{font-weight:650}.acx-bar button,.acx-b button{border:0;border-radius:999px;padding:5px 11px;font:600 12px system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;background:rgba(120,120,128,.16);color:inherit;white-space:nowrap}
 .acx-bar button:hover,.acx-b button:hover{background:rgba(120,120,128,.3)}.acx-b button.del{color:#d70015}.acx-b{white-space:nowrap}
 .acx-ck{width:16px;height:16px;cursor:pointer}.acx-n td{padding:4px 10px 10px!important;border-top:0!important}
