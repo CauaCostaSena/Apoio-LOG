@@ -3521,6 +3521,9 @@ html .pl-alarme-g.nao .btn.pl-resolve{background:#fff;color:#b45309}
 .psb .psb-ch:has(.psb-nenv){gap:9px}
 </style>
 <style id="apCss">.it .cn-b{position:absolute;top:-5px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#ff3b30;color:#fff;font:700 10.5px/17px system-ui,sans-serif;text-align:center}.it .cn-b[hidden]{display:none}.it.cn-ocupado{opacity:.6;pointer-events:none}
+.psb-pr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}.psb-pt{border:0;border-radius:10px;padding:6px 10px;font:600 12.5px inherit;font-family:inherit;cursor:pointer;background:rgba(255,149,0,.18);color:inherit;display:inline-flex;gap:6px;align-items:center;max-width:100%}.psb-pt .ico{width:13px;height:13px}
+.psb-ch>span.psb-pend{background:#c2410c;color:#fff}
+.psm-pend{display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(255,149,0,.16);box-shadow:inset 4px 0 0 #ff9500;font-size:13.5px}.psm-pend b{display:block;font-size:11.5px;letter-spacing:.08em;color:#c2410c}html[data-tema=dark] .psm-pend b{color:#ffb340}.psm-pend span{font-weight:600;white-space:pre-wrap}.psm-pend .ico{width:18px;height:18px;margin-top:2px;color:#ff9500}
 .ap-dlg{border:0;border-radius:18px;padding:0;max-width:600px;width:94vw;background:var(--card,#fff);color:var(--ink,#111);box-shadow:0 24px 60px rgba(0,0,0,.3)}\nhtml[data-tema=dark] .ap-dlg{background:var(--card,#1c1c1e);color:var(--ink,#f5f5f7);box-shadow:0 0 0 1px rgba(255,255,255,.12),0 24px 60px rgba(0,0,0,.6)}\n.ap-dlg .btn{color:var(--ink,inherit)}.ap-ondas button{color:var(--ink,inherit)}.ap-ondas b{color:var(--ink,inherit)}.ap-ondas button{border-color:var(--line,rgba(120,120,128,.35))}\nhtml[data-tema=dark] .ap-ondas .urg em{color:#ff6961}html[data-tema=dark] .ap-ondas .nao em{color:#ffb340}html[data-tema=dark] .ap-ondas .pronta em{color:#4cd964}html[data-tema=dark] .ap-ondas .parc em{color:#64a8ff}.ap-ondas span{opacity:.85}
 .ap-dlg::backdrop{background:rgba(15,23,42,.45)}.ap-dlg form{padding:20px 22px;display:flex;flex-direction:column;gap:12px}
 .ap-top{display:flex;gap:14px;align-items:flex-start}.ap-ic{font-size:40px;line-height:1;animation:apBal 1.4s ease-in-out infinite}.ap-top h2{margin:0 0 4px;font-size:20px}.ap-top p{margin:0;opacity:.75}
@@ -106071,9 +106074,9 @@ uykyL1m61u7sInj3hnaptGITBJ4zulnFv4ttmk/pm5010wvnMbzt436WTHfkH6xZc7jUzh2fGHpV
   /* modelo do bloco (ícones, nunca emojis) */
   function psChips(b) {
     const c = b.cli && CLIENTES.find(x => x.id === b.cli);
-    return `<div class="psb-ch">${b.urg ? `<span class="psb-urg">${IC('siren')}Urgente</span>` : ''}${b.imp ? `<span class="psb-imp">${IC('exc3')}Importante</span>` : ''}${b.nenv ? `<span class="psb-nenv">${IC('send')}Não enviada</span>` : ''}${b.incompleto ? `<span class="psb-inc">Programação de Rascunho Incompleta<button type="button" class="psb-q" data-psinc="${esc(b.autor || '')}" title="O que é isso?" aria-label="O que é programação de rascunho incompleta?">?</button></span>` : ''}${b.obsOn && String(b.obs || '').trim() ? `<span class="psb-ob2">${IC('warn')}Observação</span>` : ''}<span class="psb-tipo${/reprog/i.test(b.tipo) ? ' rep' : ''}">${esc(b.tipo || 'Programação')}</span>${c ? `<span class="ptcli" style="background:${c.cor}">${esc(c.nome)}</span>` : ''}</div>`; }
+    return `<div class="psb-ch">${b.urg ? `<span class="psb-urg">${IC('siren')}Urgente</span>` : ''}${b.imp ? `<span class="psb-imp">${IC('exc3')}Importante</span>` : ''}${b.nenv ? `<span class="psb-nenv">${IC('send')}Não enviada</span>` : ''}${b.incompleto ? `<span class="psb-inc">Programação de Rascunho Incompleta<button type="button" class="psb-q" data-psinc="${esc(b.autor || '')}" title="O que é isso?" aria-label="O que é programação de rascunho incompleta?">?</button></span>` : ''}${b.pend ? `<span class="psb-pend">${IC('hourglass')}Pendência</span>` : ''}${b.obsOn && String(b.obs || '').trim() ? `<span class="psb-ob2">${IC('warn')}Observação</span>` : ''}<span class="psb-tipo${/reprog/i.test(b.tipo) ? ' rep' : ''}">${esc(b.tipo || 'Programação')}</span>${c ? `<span class="ptcli" style="background:${c.cor}">${esc(c.nome)}</span>` : ''}</div>`; }
   function psModelo(b) {
-    return `<div class="psm"><div class="psm-t"><b title="${esc(b.titulo || '')}">${esc(t40(b.titulo || 'Sem título'))} – ${esc(psQuandoAA(b.recebido) || '—')}</b></div>
+    return `<div class="psm"><div class="psm-t"><b title="${esc(b.titulo || '')}">${esc(t40(b.titulo || 'Sem título'))} – ${esc(psQuandoAA(b.recebido) || '—')}</b></div>${b.pend ? `<div class="psm-pend">${IC('hourglass')}<div><b>PENDÊNCIA</b><span>${esc(b.pendTxt || '')}</span></div></div>` : ''}
       <div class="psm-l">${IC('pin')}<div class="psm-c"><span>Placa Originária:</span> <b>${esc(b.placa || '—')}</b></div></div>
       <div class="psm-l">${IC('truck')}<div class="psm-c"><span>Qntd. Ajudantes:</span> <b>${esc(psNum(b.ajud))}</b></div></div>
       <div class="psm-l">${IC('send')}<div class="psm-c"><span>Enviadas para</span> <b>${esc(b.prest || '—')}</b> <span>por</span> <b>${esc(b.remet || '—')}</b></div></div>
@@ -106083,7 +106086,7 @@ uykyL1m61u7sInj3hnaptGITBJ4zulnFv4ttmk/pm5010wvnMbzt436WTHfkH6xZc7jUzh2fGHpV
   function psBlocoHtml(b) { return `<div class="psb ro${b.urg ? ' urg' : ''}${b.imp ? ' imp' : ''}${b.nao ? ' nao' : ''}${psAnelCls(b)}"${psAnelSt(b)}>${psChips(b)}${psModelo(b)}</div>`; }
   /* o mesmo bloco como texto para colar no WhatsApp (aqui os emojis são o formato combinado) */
   function psTexto(b) {
-    return [`*${b.titulo || 'SEM TÍTULO'} – ${psQuandoAA(b.recebido) || '—'}*`, b.urg ? '🚨 URGENTE' : '', b.imp ? '‼️ IMPORTANTE' : '', b.nenv ? '🚫 NÃO enviada' : '', b.incompleto ? 'Programação de Rascunho Incompleta' : '', `📌 Placa Originária: ${b.placa || '—'}`, `🚚 Qntd. Ajudantes: ${psNum(b.ajud)}`,
+    return [`*${b.titulo || 'SEM TÍTULO'} – ${psQuandoAA(b.recebido) || '—'}*`, b.pend ? `⏳ *PENDÊNCIA:* ${b.pendTxt || ''}` : '', b.urg ? '🚨 URGENTE' : '', b.imp ? '‼️ IMPORTANTE' : '', b.nenv ? '🚫 NÃO enviada' : '', b.incompleto ? 'Programação de Rascunho Incompleta' : '', `📌 Placa Originária: ${b.placa || '—'}`, `🚚 Qntd. Ajudantes: ${psNum(b.ajud)}`,
       `📤 Enviadas para ${b.prest || '—'} por ${b.remet || '—'}`, `⏰ Atendimentos para ${b.dias || '—'}`, b.nLojas != null ? '🗑️ Lojas excluídas: ' + b.nLojas + ' (' + b.lojasTxt + ')' : '', b.nao ? '❌ NÃO lançada no sistema' : '✅ ' + (b.stTxt || 'Lançada no Sistema'), b.obsOn ? `⚠️ OBS: ${b.obs || '—'}` : ''].filter(Boolean).join('\n'); }
   function psResumo(b) { return [b.titulo, b.prest && 'para ' + b.prest, b.dias && 'atendimento ' + b.dias, b.nenv && 'NÃO enviada', b.obsOn && b.obs && 'OBS: ' + b.obs].filter(Boolean).join(' · '); }
 
@@ -106094,6 +106097,7 @@ uykyL1m61u7sInj3hnaptGITBJ4zulnFv4ttmk/pm5010wvnMbzt436WTHfkH6xZc7jUzh2fGHpV
   function psEdicao(b) {
     const opt = (L, v, vz) => (vz ? '<option value="">—</option>' : '') + L.map(([k, t]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(t)}</option>`).join('');
     return `<article class="psb${b.urg ? ' urg' : ''}${b.imp ? ' imp' : ''}${b.nao ? ' nao' : ''}${psAnelCls(b, 1)}"${psAnelSt(b, 1)} data-psid="${esc(b.id)}">${psChips(b)}
+      <div class="psb-pr">${psSw(b, 'pend', 'Pendências', 'hourglass')}${b.pend ? `<button type="button" class="psb-pt" data-psa="pend" title="Editar a pendência">${esc(t40(b.pendTxt || ''))} ${IC('edit')}</button>` : ''}</div>
       <div class="psb-f">
         <label class="w2">Nome do e-mail<input data-psf="titulo" maxlength="160" value="${esc(b.titulo)}" placeholder="assunto do e-mail"></label>
         <label>Recebido em<input type="datetime-local" data-psf="recebido" value="${esc(b.recebido)}"></label>
@@ -106109,7 +106113,7 @@ uykyL1m61u7sInj3hnaptGITBJ4zulnFv4ttmk/pm5010wvnMbzt436WTHfkH6xZc7jUzh2fGHpV
       <div class="psb-r">${psSw(b, 'urg', 'Urgente', 'siren')}${psSw(b, 'imp', 'Importante', 'exc3')}${psSw(b, 'obsOn', 'Observação', 'warn')}${psSw(b, 'nenv', 'Não enviada', 'send')}<span class="grow"></span>
         <button type="button" class="btn sm" data-psa="rem">${IC('trash')}Remover</button><button type="button" class="btn pri sm" data-psa="salvar">${IC('check')}Salvar bloco</button></div></article>`; }
   function psSalvo(b) {
-    return `<article class="psb${b.urg ? ' urg' : ''}${b.imp ? ' imp' : ''}${b.nao ? ' nao' : ''}${psAnelCls(b, 1)}"${psAnelSt(b, 1)} data-psid="${esc(b.id)}">${psChips(b)}${psModelo(b)}
+    return `<article class="psb${b.urg ? ' urg' : ''}${b.imp ? ' imp' : ''}${b.nao ? ' nao' : ''}${psAnelCls(b, 1)}"${psAnelSt(b, 1)} data-psid="${esc(b.id)}">${psChips(b)}<div class="psb-pr">${psSw(b, 'pend', 'Pendências', 'hourglass')}${b.pend ? `<button type="button" class="psb-pt" data-psa="pend" title="Editar a pendência">${esc(t40(b.pendTxt || ''))} ${IC('edit')}</button>` : ''}</div>${psModelo(b)}
       <div class="psb-r">${psSw(b, 'urg', 'Urgente', 'siren')}${psSw(b, 'imp', 'Importante', 'exc3')}${psSw(b, 'obsOn', 'Observação', 'warn')}${psSw(b, 'nenv', 'Não enviada', 'send')}<span class="psb-salvo">${IC('checkc')}Salvo</span><span class="grow"></span>
         <button type="button" class="btn sm" data-psa="copiar">${IC('copy')}Copiar</button><button type="button" class="btn sm" data-psa="editar">${IC('edit')}Editar</button><button type="button" class="btn sm" data-psa="rem">${IC('trash')}</button></div></article>`; }
   const psBloco = b => (b.salvo ? psSalvo(b) : psEdicao(b));
@@ -107184,6 +107188,20 @@ html[data-tema=dark] .ac-dlg .ac-ex,html[data-tema=dark] .acx-bar [data-acx^=ex]
       if (!r) return; try { A.mesclar(ids, r.n); toast(`${lojas.length} lojas na mesma equipe, com ${r.n} ajudante(s).`); } catch (x) { toast('Não consegui mesclar: ' + x.message, true); } E.modo = false; E.ori = null; E.pick = new Set(); redo(); }
   }
   setInterval(() => { for (const id of Object.keys(frames)) { try { cfRender(id); } catch (e) { /* ignora */ } } }, 800);
+
+  /* ===================== Passagem: switch "Pendências" no início de cada bloco ===================== */
+  function psPendDlg(b) {
+    return acDlg(`<h2>Pendência <small style="font-weight:500;opacity:.6">· ${esc(t40(b.titulo || 'bloco'))}</small></h2>
+      <p class="ac-l">Descreva o que ficou pendente. Ela aparece em destaque na mensagem pronta e no histórico de passagens.</p>
+      <label>Qual é a pendência?<textarea name="t" rows="4" maxlength="600" required placeholder="Ex.: aguardando retorno da loja L154 sobre o horário">${esc(b.pendTxt || '')}</textarea></label><p class="ac-er" role="alert"></p>
+      <div class="acts"><button type="button" class="btn ac-no">Cancelar</button><button type="submit" class="btn pri">Salvar pendência</button></div>`, {
+      ok(f, er, fim) { const t = f.elements.t.value.trim(); if (t.length < 3) return er('Escreva qual é a pendência.'); fim(t); } });
+  }
+  { const raiz = $('#psBlocos'); if (raiz) {
+    raiz.addEventListener('change', async e => { const f = e.target.closest('[data-psf="pend"]'); if (!f) return; e.stopImmediatePropagation(); const art = f.closest('[data-psid]'), b = psAchar(art.dataset.psid); if (!b) return;
+      if (f.checked) { const t = await psPendDlg(b); if (t) { b.pend = true; b.pendTxt = t; } else b.pend = false; } else { b.pend = false; b.pendTxt = ''; }
+      psGuardar(); psTroca(b.id); }, true);
+    raiz.addEventListener('click', async e => { const a = e.target.closest('[data-psa="pend"]'); if (!a) return; e.stopImmediatePropagation(); const b = psAchar(a.closest('[data-psid]').dataset.psid); if (!b) return; const t = await psPendDlg(b); if (t) { b.pend = true; b.pendTxt = t; psGuardar(); psTroca(b.id); } }, true); } }
 
   window.__BP = { bpFiltrar, bpEmails, bpRegiaoUF, bpPqRender, bpMontar, bpPqMontar };
   function mlValido(f) { return !!(f.dia.value && f.hora.value && f.env.value.trim() && f.tipo.value && f.titulo.value.trim()); }
