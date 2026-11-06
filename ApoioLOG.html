@@ -105362,7 +105362,32 @@ uykyL1m61u7sInj3hnaptGITBJ4zulnFv4ttmk/pm5010wvnMbzt436WTHfkH6xZc7jUzh2fGHpV
       if (ult) { const d = ptNormalizar(JSON.parse(await (await ult.x.getFile()).text())); if (d) { dg.estado = 'ok (do backup ' + ult.n + ')'; return d; } } } catch (e) { /* sem backup utilizável */ }
     return null; }
   function ptJuntar(lista) { const out = {}; ['cards', 'verif', 'resumos', 'emails', 'avisos', 'reprogs', 'pends', 'zap', 'quiz', 'cobr', 'devol', 'bloq', 'rascunhos', 'sugestoes', 'acoes', 'lnotas'].forEach(k => { const M = new Map(); lista.forEach(d => (d && Array.isArray(d[k]) ? d[k] : []).forEach(c => { if (!c || c.id == null) return; const o = M.get(c.id); if (!o || String(c.atualizadoEm) > String(o.atualizadoEm)) M.set(c.id, c); })); out[k] = [...M.values()]; }); return out; }
-  async function ptLer0() { if (PT.gravando) return; if (window.__PT_DADOS_TESTE) { PT.dados = window.__PT_DADOS_TESTE; PT.lido = new Date(); ptRender(); ctAtualizar(); return; } if (!PT.pastas.length) await ptPrepararPastas(); const L = []; for (const h of PT.pastas) { const d = await ptLerPasta(h); if (d) L.push(d); } PT.dados = L.length ? ptJuntar(L.concat(ptOffPend() ? [ptOffDados()] : [])) : (ptOffPend() ? ptOffDados() : PT.dados); PT.lido = new Date(); if (atual === 'plt') ptRender(); ctAtualizar(); ptAvisarNovas(); }
+  async function ptLer0_antigo() { return; }
+  /* ===================== Passagens sempre registradas: espelho local + recuperação pelos backups diários + trava de gravação ===================== */
+  const PT_CHAVES = ['cards', 'verif', 'resumos', 'emails', 'avisos', 'reprogs', 'pends', 'zap', 'quiz', 'cobr', 'devol', 'bloq', 'rascunhos', 'sugestoes', 'acoes', 'lnotas'];
+  const ptContar = d => PT_CHAVES.reduce((s, k) => s + (d && Array.isArray(d[k]) ? d[k].length : 0), 0);
+  /* todos os backups diários da pasta (BACKUP/PLANTAO_ROTA_FREITAS_AAAA-MM-DD.json), do mais novo ao mais antigo */
+  async function ptLerBackups(h) {
+    const out = []; try { const bk = await h.getDirectoryHandle('BACKUP'), nomes = []; for await (const [n, x] of bk.entries()) if (x.kind === 'file' && /^PLANTAO_ROTA_FREITAS_\d{4}-\d{2}-\d{2}\.json$/.test(n)) nomes.push([n, x]);
+      nomes.sort((a, b) => (a[0] < b[0] ? 1 : -1)); for (const [n, x] of nomes.slice(0, 60)) { try { const d = ptNormalizar(JSON.parse(await (await x.getFile()).text())); if (d) out.push(d); } catch (e) { /* backup ilegível: pula */ } } } catch (e) { /* sem pasta BACKUP */ }
+    return out; }
+  let ptEspT = 0, ptEspSig = '';
+  function ptEspelhoSalvar() { clearTimeout(ptEspT); ptEspT = setTimeout(async () => { try { const n = ptContar(PT.dados), sig = n + ':' + (PT.dados.atualizadoEm || ''); if (!n || sig === ptEspSig) return; ptEspSig = sig; await idbSet('ptEspelho', JSON.stringify(PT.dados)); } catch (e) { /* sem espaço local: ignora */ } }, 1500); }
+  async function ptEspelhoLer() { try { const t = await idbGet('ptEspelho'); return t ? ptNormalizar(JSON.parse(t)) : null; } catch (e) { return null; } }
+  /* ao abrir: mostra já o que estava guardado neste computador, sem esperar as pastas */
+  ptEspelhoLer().then(e => { if (e && !PT.lido && !ptContar(PT.dados)) { PT.dados = ptJuntar([e]); try { ptRender(); } catch (x) { /* ainda carregando */ } } });
+  async function ptLer0() {
+    if (PT.gravando) return; if (window.__PT_DADOS_TESTE) { PT.dados = window.__PT_DADOS_TESTE; PT.lido = new Date(); ptRender(); ctAtualizar(); return; }
+    if (!PT.pastas.length) await ptPrepararPastas(); const L = []; for (const h of PT.pastas) { const d = await ptLerPasta(h); if (d) L.push(d); }
+    const doArq = ptJuntar(L.slice()), extra = [];
+    PT.bkSet = PT.bkSet || new Map(); for (const h of PT.pastas) { if (!PT.bkSet.has(h.name)) PT.bkSet.set(h.name, await ptLerBackups(h)); for (const b of PT.bkSet.get(h.name)) extra.push(b); }
+    const esp = await ptEspelhoLer(); if (esp) extra.push(esp); if (ptOffPend()) extra.push(ptOffDados());
+    const base = L.length || extra.length ? ptJuntar(L.concat(extra).concat([PT.dados && ptContar(PT.dados) ? PT.dados : null].filter(Boolean))) : PT.dados;
+    PT.dados = base; PT.lido = new Date(); PT.nArq = ptContar(doArq);
+    if (atual === 'plt') ptRender(); ctAtualizar(); ptAvisarNovas(); ptEspelhoSalvar();
+    /* o que existe no espelho/backup e falta no arquivo da pasta volta para a pasta (sem alarde) */
+    if (PT.pastas.length && ptContar(base) > ptContar(doArq) && !PT.curando) { PT.curando = true; PT.silencio = true; try { await ptGravar(() => {}); } finally { PT.silencio = false; setTimeout(() => { PT.curando = false; }, 60000); } }
+  }
   async function ptLer() { try { await ptLer0(); PT.erroLer = ''; } catch (e) { PT.erroLer = (e && e.message) || String(e); try { ptFonteRender(); } catch (x) { /* ignora */ } console.warn('plantão', e); } }
   /* relê todas as pastas, junta, aplica a mudança e grava em todas (assim ninguém apaga o cartão do outro) */
   /* ---------- modo sem rede do plantão (passagens, chat, cobrança, avisos…): fica guardado neste computador ---------- */
@@ -105541,11 +105566,14 @@ uykyL1m61u7sInj3hnaptGITBJ4zulnFv4ttmk/pm5010wvnMbzt436WTHfkH6xZc7jUzh2fGHpV
     if (!PT.pastas.length && PT.semPerm.length) { for (const h of PT.semPerm) { try { await h.requestPermission({ mode: 'readwrite' }); } catch (e) { /* ignora */ } } await ptPrepararPastas(); }
     if (!PT.pastas.length) { ptOffLocal(muda); if (!PT.silencio) toast(PT.semPerm.length ? 'O navegador não liberou as pastas: ficou guardado neste computador. Clique de novo e aceite o pedido para enviar.' : 'Sem acesso às pastas: ficou guardado neste computador e vai sozinho quando a pasta voltar.'); return false; }
     PT.gravando = true;
-    try { const L = []; for (const h of PT.pastas) { const d = await ptLerPasta(h); if (d) L.push(d); } const d = ptJuntar(L.concat([PT.dados])); muda(d); d.atualizadoEm = new Date().toISOString();
+    try { const L = []; for (const h of PT.pastas) { const d = await ptLerPasta(h); if (d) L.push(d); }
+      /* trava: se alguma pasta não pôde ser lida agora, não regrava o arquivo (evita apagar histórico): fica guardado e vai depois */
+      const ruim = PT.pastas.filter(h => { const g = PT_DIAG[h.name]; return g && !/^ok|^sem arquivo/.test(g.estado); }); if (ruim.length) { ptOffLocal(muda); if (!PT.silencio) toast('Não consegui ler a pasta ' + ruim.map(h => h.name).join(', ') + ' agora: a passagem ficou guardada neste computador e vai sozinha quando a leitura voltar.', true); return false; }
+      const d = ptJuntar(L.concat([PT.dados])); muda(d); d.atualizadoEm = new Date().toISOString();
       const txt = JSON.stringify(d); let ok = 0;
       for (const h of PT.pastas) { try { const fh = await h.getFileHandle(PT_ARQ, { create: true }); const w = await fh.createWritable(); await w.write(txt); await w.close(); ok++; } catch (e) { /* pasta só leitura */ } }
       try { const h = PT.pastas[0], bk = await h.getDirectoryHandle('BACKUP', { create: true }), nm = PT_ARQ.replace('.json', '_' + hoje() + '.json'); let tem = true; try { await bk.getFileHandle(nm); } catch (e) { tem = false; } if (!tem) { const w = await (await bk.getFileHandle(nm, { create: true })).createWritable(); await w.write(txt); await w.close(); } } catch (e) { /* sem backup */ }
-      PT.dados = d; PT.lido = new Date(); if (!ok) { ptOffMarcar(); if (!PT.silencio) toast('Sem acesso às pastas: o plantão ficou guardado neste computador e vai sozinho quando a pasta voltar.'); } else ptOffLimpar(); return ok > 0; }
+      PT.dados = d; PT.lido = new Date(); ptEspelhoSalvar(); if (!ok) { ptOffMarcar(); if (!PT.silencio) toast('Sem acesso às pastas: o plantão ficou guardado neste computador e vai sozinho quando a pasta voltar.'); } else ptOffLimpar(); return ok > 0; }
     catch (e) { toast('Não consegui gravar o plantão: ' + (e && e.message || e)); return false; }
     finally { PT.gravando = false; ptRender(); ctAtualizar(); } }
   const ptId = () => 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -106581,7 +106609,8 @@ html[data-tema=dark] .ac-dlg .ac-ex,html[data-tema=dark] .acx-bar [data-acx^=ex]
     const btn = `<button type="button" class="btn sm" data-ptd="reler">Tentar de novo</button> <button type="button" class="btn sm" data-ptd="conectar">Conectar pasta do plantão</button>`;
     if (PT.erroLer) { el.hidden = false; el.innerHTML = `Erro ao montar a linha do tempo: ${esc(PT.erroLer)} ${btn}`; return; }
     if (!PT.pastas.length) { el.hidden = false; el.innerHTML = (PT.semPerm.length ? 'Clique em qualquer lugar desta tela para o navegador liberar as pastas e mostrar a linha do tempo.' : 'Abra o sistema de algum cliente e conecte a pasta dele (ou conecte uma pasta do plantão aqui): a passagem de plantão fica salva junto das planilhas.') + ' ' + btn; return; }
-    if (!ruins.length) { el.hidden = true; return; }
+    if (!ruins.length) { el.hidden = false; el.style.opacity = '.75'; el.style.fontSize = '12px'; const n = (PT.dados.cards || []).filter(c => c.col === 'passagem' && !c.apagado).length; el.innerHTML = `Histórico lido de ${PT.pastas.length} pasta(s) · ${n} passagem(ns) registrada(s) · ${(PT.dados.emails || []).length} e-mail(s) · ${(PT.dados.acoes || []).length} ação(ões). <button type="button" class="btn sm" data-ptd="reler">Reler</button>`; return; }
+    el.style.opacity = ''; el.style.fontSize = '';
     el.hidden = false; el.innerHTML = `<b>Não consegui ler o histórico de ${ruins.length} pasta(s):</b> ${ruins.map(x => `${esc(x.nome)} — ${esc(x.erro || x.estado)}`).join(' · ')}. ${btn}`;
   }
   async function ptConectarPasta() {
